@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI | Adaptive Learning & Skill Gap Analysis</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Chart.js 4.4 CDN for Skill Gap Radar & Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- Custom Application Styles -->
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark nav-main px-3 px-md-5">
+  <div class="container-fluid px-0">
+    <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+      <i class="bi bi-cpu-fill text-primary-subtle me-2 fs-4"></i>
+      <span>SkillBridge <span class="brand-ai">AI</span></span>
+    </a>
+
+    <!-- Navbar Right: Live Status & Auth Navigation -->
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle d-none d-lg-inline-flex align-items-center px-3 py-2">
+        <span class="status-dot me-2"></span> System Online
+      </span>
+
+      <!-- Auth Container: Injected dynamically by auth.js / app.js -->
+      <div id="navAuthContainer" class="d-flex align-items-center gap-2">
+        <a href="/login.html" class="btn btn-outline-light btn-sm px-3" id="navLoginBtn">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+        </a>
+        <a href="/register.html" class="btn btn-primary btn-sm px-3" id="navRegisterBtn">
+          <i class="bi bi-person-plus me-1"></i> Register
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<header class="container py-4 py-md-5">
+  <div class="hero rounded-4 p-4 p-md-5">
+    <div class="badge rounded-pill badge-hero mb-3">
+      <i class="bi bi-stars me-1"></i> AI-Powered Adaptive Skill Gap Analysis
+    </div>
+    <h1 class="display-5 fw-bold hero-title">
+      Turn your skill gaps<br><span class="hero-gradient-text">into a personalized growth plan.</span>
+    </h1>
+    <p class="lead mt-3 mb-0 hero-lead">
+      Benchmark your competencies against industry career targets, discover exact score gaps, and receive tailored next-step learning actions.
+    </p>
+  </div>
+</header>
+
+<!-- Student Dashboard Overview Card (Shown when logged in) -->
+<section class="container pb-3 d-none" id="studentWelcomeBanner">
+  <div class="student-profile-card p-4 rounded-4 shadow-sm border">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="student-avatar-circle">
+          <i class="bi bi-person-workspace fs-3"></i>
+        </div>
+        <div>
+          <div class="d-flex align-items-center gap-2">
+            <h2 class="h5 fw-bold mb-0" id="dashStudentName">Welcome, Student</h2>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="dashStudentRole">STUDENT</span>
+          </div>
+          <span class="text-secondary small" id="dashStudentEmail">student@example.com</span>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge level-badge level-intermediate px-3 py-2 fs-6" id="dashOverallLevel">Skill Level: Evaluating</span>
+        <button class="btn btn-outline-danger btn-sm" id="logoutBtn" title="Sign out of your account">
+          <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+        </button>
+      </div>
+    </div>
+
+    <!-- Student Aggregate Metrics -->
+    <div class="row g-3 mt-1">
+      <div class="col-6 col-md-3">
+        <div class="p-3 bg-white rounded-3 border text-center">
+          <small class="text-muted d-block fw-semibold mb-1">TOTAL ASSESSMENTS</small>
+          <strong class="fs-4 text-dark" id="dashTotalAssessments">0</strong>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="p-3 bg-white rounded-3 border text-center">
+          <small class="text-muted d-block fw-semibold mb-1">AVERAGE SCORE</small>
+          <strong class="fs-4 text-primary" id="dashAvgScore">0%</strong>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="p-3 bg-white rounded-3 border text-center">
+          <small class="text-muted d-block fw-semibold mb-1">AVERAGE GAP</small>
+          <strong class="fs-4 text-warning" id="dashAvgGap">0 pts</strong>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="p-3 bg-white rounded-3 border text-center">
+          <small class="text-muted d-block fw-semibold mb-1">TARGET BENCHMARK</small>
+          <strong class="fs-4 text-success">80%</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Personalized Student Recommendation Banner -->
+    <div class="mt-3 p-3 rounded-3 bg-light border small text-secondary" id="dashOverallRecommendation">
+      <i class="bi bi-lightbulb-fill text-warning me-1"></i>
+      <span>Loading your personal adaptive learning roadmap...</span>
+    </div>
+  </div>
+</section>
+
+<!-- Main Dashboard Container -->
+<main class="container pb-5">
+
+  <!-- Feature Navigation Tabs -->
+  <ul class="nav feature-nav-tabs mb-4" id="featureNavTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active d-flex align-items-center" id="tabCourseCatalog" type="button">
+        <i class="bi bi-book-half me-2 fs-5 text-primary"></i> Course Catalog
+        <span class="badge bg-primary text-white ms-2" id="catalogCountBadge">32 Courses</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link d-flex align-items-center" id="tabMyCourses" type="button">
+        <i class="bi bi-mortarboard-fill me-2 fs-5 text-success"></i> My Courses
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link d-flex align-items-center" id="tabLearningRoadmap" type="button">
+        <i class="bi bi-signpost-split-fill me-2 fs-5 text-info"></i> Learning Roadmap
+        <span class="badge bg-info-subtle text-info border border-info-subtle ms-2">Adaptive</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link d-flex align-items-center" id="tabCareerAssessment" type="button">
+        <i class="bi bi-briefcase-fill me-2 fs-5 text-warning"></i> Career Assessment
+        <span class="badge bg-warning text-dark ms-2">Flagship</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link d-flex align-items-center" id="tabQuickBenchmark" type="button">
+        <i class="bi bi-sliders me-2 fs-5"></i> Quick Benchmark
+      </button>
+    </li>
+    <li class="nav-item d-none" role="presentation" id="tabCourseAdminItem">
+      <button class="nav-link d-flex align-items-center text-danger" id="tabCourseAdmin" type="button">
+        <i class="bi bi-shield-lock-fill me-2 fs-5"></i> Course Admin
+      </button>
+    </li>
+  </ul>
+
+  <!-- ========================================================
+       VIEW 0: COURSE CATALOG & THEORY COURSES (NEW LMS)
+       ======================================================== -->
+  <div id="courseCatalogView">
+    <!-- Filter and Search Controls -->
+    <div class="panel mb-4 p-3 p-md-4">
+      <div class="row g-3 align-items-center">
+        <!-- Career Track Filter -->
+        <div class="col-12 col-md-4 col-lg-3">
+          <label class="form-label small fw-semibold text-muted mb-1" for="filterCourseCareer">
+            <i class="bi bi-briefcase me-1"></i> Career Track
+          </label>
+          <select class="form-select form-select-sm" id="filterCourseCareer">
+            <option value="ALL">All Career Tracks (6)</option>
+            <option value="java-developer">Java Developer</option>
+            <option value="full-stack-developer">Full Stack Developer</option>
+            <option value="data-scientist">Data Scientist</option>
+            <option value="cloud-engineer">Cloud Engineer</option>
+            <option value="aiml-engineer">AI/ML Engineer</option>
+            <option value="cybersecurity-analyst">Cybersecurity Analyst</option>
+          </select>
+        </div>
+
+        <!-- Difficulty Filter -->
+        <div class="col-6 col-md-3 col-lg-2">
+          <label class="form-label small fw-semibold text-muted mb-1" for="filterCourseDifficulty">
+            <i class="bi bi-speedometer2 me-1"></i> Difficulty
+          </label>
+          <select class="form-select form-select-sm" id="filterCourseDifficulty">
+            <option value="ALL">All Levels</option>
+            <option value="BEGINNER">Beginner</option>
+            <option value="INTERMEDIATE">Intermediate</option>
+            <option value="ADVANCED">Advanced</option>
+          </select>
+        </div>
+
+        <!-- Search Input -->
+        <div class="col-12 col-md-5 col-lg-7">
+          <label class="form-label small fw-semibold text-muted mb-1" for="searchCourseInput">
+            <i class="bi bi-search me-1"></i> Search by keyword or skill
+          </label>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control" id="searchCourseInput" placeholder="e.g. Java, SQL, React, Docker, PyTorch...">
+            <button class="btn btn-primary" type="button" id="searchCourseBtn">
+              <i class="bi bi-search me-1"></i> Search
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Courses Grid -->
+    <div class="row g-4" id="coursesGrid">
+      <div class="col-12 text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted small">Loading courses...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       VIEW: MY ENROLLED COURSES
+       ======================================================== -->
+  <div id="myCoursesView" class="d-none">
+    <div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
+      <div>
+        <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-1 mb-2 fw-semibold">
+          <i class="bi bi-mortarboard-fill me-1"></i> Student Learning Dashboard
+        </span>
+        <h2 class="h3 fw-bold mb-1 text-dark">My Enrolled Courses</h2>
+        <p class="text-secondary small mb-0">Continue reading theory lessons, complete interactive quizzes, and track your progress toward mastery.</p>
+      </div>
+      <span class="badge bg-success text-white px-3 py-2" id="myCoursesCount">0 Active Courses</span>
+    </div>
+
+    <div class="row g-4" id="myCoursesGrid"></div>
+  </div>
+
+  <!-- ========================================================
+       VIEW: PERSONALIZED LEARNING ROADMAP
+       ======================================================== -->
+  <div id="learningRoadmapView" class="d-none">
+    <div id="roadmapContent"></div>
+  </div>
+
+  <!-- ========================================================
+       VIEW: LESSON READING & QUIZ INTERFACE
+       ======================================================== -->
+  <div id="lessonReaderView" class="d-none"></div>
+
+  <!-- ========================================================
+       VIEW: ADMIN COURSE MANAGEMENT (ADMIN ONLY)
+       ======================================================== -->
+  <div id="courseAdminView" class="d-none">
+    <div class="panel">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+          <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 mb-1">
+            <i class="bi bi-shield-lock me-1"></i> Admin Console
+          </span>
+          <h2 class="h4 fw-bold mb-0 text-dark">Course & Curriculum Management</h2>
+          <p class="text-secondary small mb-0">Create new courses, edit structured lessons, manage quizzes, and toggle published status.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCreateCourseModal()">
+          <i class="bi bi-plus-circle me-1"></i> Create New Course
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 60px;">ID</th>
+              <th>Course Title & Slug</th>
+              <th>Career Track</th>
+              <th>Skill Category</th>
+              <th>Difficulty</th>
+              <th>Status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminCoursesTableBody">
+            <tr><td colspan="7" class="text-center py-4 text-muted">Loading courses...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       VIEW 1: CAREER-BASED SKILL ASSESSMENT (PHASE 3)
+       ======================================================== -->
+  <div id="careerAssessmentView" class="d-none">
+    <!-- 1.1 Career Selection Section -->
+    <section id="careerSelectionSection" class="mb-5">
+      <div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
+        <div>
+          <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 mb-2 fw-semibold">
+            <i class="bi bi-compass me-1"></i> Personalized Career Pathways
+          </span>
+          <h2 class="h3 fw-bold mb-1 text-dark">Select Your Target Career Path</h2>
+          <p class="text-secondary small mb-0">Choose your industry track to start an adaptive, multi-competency assessment tailored to industry standards.</p>
+        </div>
+      </div>
+
+      <!-- Career Cards Grid: Loaded dynamically by career-assessment.js -->
+      <div class="row g-4" id="careerCardsGrid">
+        <div class="col-12 text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 text-muted small">Loading career paths...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1.2 Interactive Quiz Section (Hidden by default) -->
+    <section id="careerQuizSection" class="d-none mb-5">
+      <!-- Injected dynamically by career-assessment.js -->
+    </section>
+
+    <!-- 1.3 Career Assessment Result & Gap Analysis Section (Hidden by default) -->
+    <section id="careerResultSection" class="d-none mb-5">
+      <!-- Injected dynamically by career-assessment.js -->
+    </section>
+
+    <!-- 1.4 Career Assessment History Section -->
+    <section id="careerHistorySection" class="panel mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h3 class="h5 fw-bold mb-0 d-flex align-items-center">
+            <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i> Your Career Assessment History
+          </h3>
+          <span class="text-secondary small">Comprehensive readiness audits saved to your student profile</span>
+        </div>
+      </div>
+
+      <div id="careerHistoryContainer">
+        <div class="text-center py-4 text-muted small">
+          <i class="bi bi-clock-history fs-3 d-block mb-1 text-secondary"></i>
+          <span>Sign in or take an assessment above to view your historical career benchmark reports.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========================================================
+       VIEW 2: QUICK SINGLE-SKILL BENCHMARK (PHASES 1 & 2)
+       ======================================================== -->
+  <div id="quickBenchmarkView" class="d-none">
+    <div class="row g-4">
+    <!-- Left Column: Assessment Form Panel -->
+    <section class="col-12 col-lg-5">
+      <div class="panel h-100 d-flex flex-column">
+        <div class="d-flex align-items-center mb-3">
+          <div class="icon-circle bg-primary-subtle text-primary me-2">
+            <i class="bi bi-clipboard2-check-fill"></i>
+          </div>
+          <div>
+            <h2 class="h4 fw-bold mb-0">Take a skill assessment</h2>
+            <p class="text-secondary small mb-0">Enter your details and benchmark your score (0–100).</p>
+          </div>
+        </div>
+
+        <form id="assessmentForm" novalidate class="flex-grow-1 d-flex flex-column">
+          <!-- Learner Name -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="learner">
+              <i class="bi bi-person me-1 text-primary"></i> Your name
+            </label>
+            <input class="form-control" id="learner" maxlength="80" value="Demo Student" placeholder="Enter learner name" required>
+          </div>
+
+          <!-- Skill Topic Selection -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="topic">
+              <i class="bi bi-journal-code me-1 text-primary"></i> Skill topic
+            </label>
+            <select class="form-select" id="topic" required>
+              <option value="">Loading topics...</option>
+            </select>
+            <!-- Topic Target Info Pill -->
+            <div id="topicDetails" class="topic-info-pill mt-2 d-none">
+              <span class="badge bg-light text-dark border me-2" id="topicRoleBadge">Role</span>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="topicTargetBadge">Target: 80%</span>
+            </div>
+          </div>
+
+          <!-- Assessment Score Controls -->
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label fw-semibold mb-0" for="score">
+                <i class="bi bi-sliders me-1 text-primary"></i> Assessment score
+              </label>
+              <div class="d-flex align-items-center gap-2">
+                <span id="scoreBadge" class="score-display-badge">55%</span>
+                <span id="scoreLevelChip" class="badge level-badge level-improvement">Needs improvement</span>
+              </div>
+            </div>
+
+            <!-- Range Slider -->
+            <input class="form-range custom-range" type="range" id="score" min="0" max="100" value="55" step="1">
+
+            <!-- Number input and stepper row -->
+            <div class="d-flex align-items-center gap-2 mt-2">
+              <div class="input-group input-group-sm score-stepper">
+                <button class="btn btn-outline-secondary" type="button" id="btnScoreDec" title="Decrease score">-</button>
+                <input type="number" class="form-control text-center fw-bold" id="scoreNumber" min="0" max="100" value="55" aria-label="Score number">
+                <button class="btn btn-outline-secondary" type="button" id="btnScoreInc" title="Increase score">+</button>
+              </div>
+              <span class="text-muted small">/ 100</span>
+            </div>
+
+            <!-- Quick Preset Buttons -->
+            <div class="score-presets mt-3">
+              <span class="small text-muted d-block mb-1">Quick Select:</span>
+              <div class="btn-group btn-group-sm w-100" role="group" aria-label="Score presets">
+                <button type="button" class="btn btn-outline-secondary preset-btn" data-score="25">25% Beginner</button>
+                <button type="button" class="btn btn-outline-primary preset-btn active" data-score="55">55% Developing</button>
+                <button type="button" class="btn btn-outline-secondary preset-btn" data-score="75">75% Proficient</button>
+                <button type="button" class="btn btn-outline-secondary preset-btn" data-score="90">90% Advanced</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button class="btn btn-primary w-100 py-2 fw-semibold btn-submit mt-auto" id="submitBtn" type="submit">
+            <i class="bi bi-lightning-charge-fill me-1"></i> Analyze my skill gap
+          </button>
+        </form>
+
+        <!-- Status Message Banner -->
+        <div id="messageAlert" class="alert d-none mt-3 mb-0 alert-banner" role="alert" aria-live="polite">
+          <div class="d-flex align-items-center">
+            <i id="messageIcon" class="bi me-2 fs-5"></i>
+            <span id="messageText"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Results & History Panel -->
+    <section class="col-12 col-lg-7">
+      <div class="panel h-100 d-flex flex-column">
+        <!-- Results Section Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h2 class="h4 fw-bold mb-1 d-flex align-items-center">
+              <i class="bi bi-graph-up-arrow me-2 text-primary"></i> Your skill analysis
+            </h2>
+            <p class="text-secondary small mb-0">Real-time adaptive gap breakdown and actionable next steps.</p>
+          </div>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+            <i class="bi bi-activity me-1"></i> Live analysis
+          </span>
+        </div>
+
+        <!-- Result Content Container -->
+        <div id="result" class="result-container">
+          <div class="empty-state text-center py-4">
+            <div class="empty-icon-circle mx-auto mb-3">
+              <i class="bi bi-bar-chart-line fs-2 text-muted"></i>
+            </div>
+            <h3 class="h6 fw-bold text-dark">No Assessment Evaluated Yet</h3>
+            <p class="text-secondary small mb-0 max-w-sm mx-auto">
+              Select your skill topic, set your score (try 55%), and submit the assessment to calculate your exact proficiency gap and learning roadmap.
+            </p>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- Assessment History Section -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h3 class="h5 fw-bold mb-0 d-flex align-items-center">
+              <i class="bi bi-clock-history me-2 text-primary"></i> Assessment history
+            </h3>
+            <span class="text-secondary small" id="historySubtitle">Past assessments</span>
+          </div>
+          <button id="refreshHistory" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center" type="button" title="Refresh assessment history">
+            <i class="bi bi-arrow-repeat me-1" id="refreshIcon"></i> Refresh
+          </button>
+        </div>
+
+        <!-- History Items Container -->
+        <div id="history" class="history-list flex-grow-1">
+          <div class="text-center py-3 text-secondary small">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> Loading history...
+          </div>
+        </div>
+      </div>
+    </section>
+    </div> <!-- /row -->
+  </div> <!-- /quickBenchmarkView -->
+
+  <!-- ========================================================
+       PHASE 4–7: PROGRESS ANALYTICS, ROADMAP & ADMIN INSIGHTS
+       ======================================================== -->
+  <section id="insightsSection" class="mt-5 d-none">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+      <div>
+        <span class="badge rounded-pill bg-success-subtle text-success border px-3 py-1 mb-2">Phase 4–6</span>
+        <h2 class="h3 fw-bold mb-1">Your learning journey</h2>
+        <p class="text-secondary mb-0">Track improvement and turn your latest assessment into an actionable learning roadmap.</p>
+      </div>
+      <button class="btn btn-outline-primary" id="refreshInsightsBtn"><i class="bi bi-arrow-repeat me-1"></i> Refresh insights</button>
+    </div>
+    <div class="row g-4">
+      <div class="col-12 col-xl-6">
+        <div class="panel h-100">
+          <h3 class="h5 fw-bold"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Progress analytics</h3>
+          <p class="small text-secondary">Readiness score across your saved assessments.</p>
+          <canvas id="readinessTrendChart" height="180" aria-label="Readiness score trend chart"></canvas>
+          <div id="skillAnalyticsList" class="mt-3"></div>
+          <p class="small text-muted mt-2 mb-0" id="analyticsMessage">Complete an assessment to see your trend.</p>
+        </div>
+      </div>
+      <div class="col-12 col-xl-6">
+        <div class="panel h-100">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div><h3 class="h5 fw-bold"><i class="bi bi-signpost-split text-success me-2"></i>Personalized learning roadmap</h3>
+              <p class="small text-secondary" id="roadmapSummary">Your learning tasks will be generated from your latest skill gaps.</p></div>
+            <span class="badge bg-success-subtle text-success">Adaptive</span>
+          </div>
+          <div id="roadmapTasks"><div class="text-muted small">Loading roadmap...</div></div>
+          <div class="small text-muted mt-3" id="roadmapSource"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Admin-only overview. API enforces ADMIN role regardless of UI visibility. -->
+  <section id="adminInsightsSection" class="mt-4 d-none">
+    <div class="panel">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div><span class="badge bg-danger-subtle text-danger">Admin only</span><h2 class="h4 fw-bold mt-2 mb-0">Platform overview</h2></div>
+        <button class="btn btn-outline-secondary btn-sm" id="refreshAdminBtn">Refresh admin data</button>
+      </div>
+      <div class="row g-3 mb-3" id="adminMetrics"></div>
+      <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>Student</th><th>Career</th><th>Score</th><th>Readiness</th><th>Date</th></tr></thead><tbody id="adminAssessmentRows"><tr><td colspan="5" class="text-muted">Admin data loads for admin accounts.</td></tr></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- Bottom Mini Cards: Educational Walkthrough -->
+  <section class="row g-3 mt-4">
+    <div class="col-12 col-md-4">
+      <div class="mini-card">
+        <div class="mini-card-icon bg-info-subtle text-info">
+          <i class="bi bi-speedometer2"></i>
+        </div>
+        <h3 class="h6 fw-bold">1. Assess Skills</h3>
+        <p class="small text-secondary mb-0">Benchmark your current baseline against career-relevant competencies and industry roles.</p>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="mini-card">
+        <div class="mini-card-icon bg-warning-subtle text-warning">
+          <i class="bi bi-bullseye"></i>
+        </div>
+        <h3 class="h6 fw-bold">2. Analyze the Gap</h3>
+        <p class="small text-secondary mb-0">Quantify points between your existing proficiency and the target milestone score.</p>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="mini-card">
+        <div class="mini-card-icon bg-success-subtle text-success">
+          <i class="bi bi-trophy"></i>
+        </div>
+        <h3 class="h6 fw-bold">3. Bridge the Gap</h3>
+        <p class="small text-secondary mb-0">Execute tailored recommendations and re-assess to track measurable mastery.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Admin Course Modal -->
+<div class="modal fade" id="adminCourseModal" tabindex="-1" aria-labelledby="adminCourseModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="adminCourseModalTitle">Create Course</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="adminCourseForm" onsubmit="handleSaveAdminCourse(event)">
+        <div class="modal-body">
+          <input type="hidden" id="adminCourseId">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="adminCourseSlug">Course Slug</label>
+              <input type="text" class="form-control form-control-sm" id="adminCourseSlug" placeholder="e.g. java-fundamentals" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="adminCourseTitle">Course Title</label>
+              <input type="text" class="form-control form-control-sm" id="adminCourseTitle" placeholder="e.g. Java Fundamentals" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold" for="adminCourseDesc">Description</label>
+              <textarea class="form-control form-control-sm" id="adminCourseDesc" rows="3" required></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="adminCourseCareerId">Career Track ID</label>
+              <select class="form-select form-select-sm" id="adminCourseCareerId" required>
+                <option value="java-developer">java-developer</option>
+                <option value="full-stack-developer">full-stack-developer</option>
+                <option value="data-scientist">data-scientist</option>
+                <option value="cloud-engineer">cloud-engineer</option>
+                <option value="aiml-engineer">aiml-engineer</option>
+                <option value="cybersecurity-analyst">cybersecurity-analyst</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="adminCourseCareerTitle">Career Title Display</label>
+              <input type="text" class="form-control form-control-sm" id="adminCourseCareerTitle" placeholder="e.g. Java Developer" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold" for="adminCourseSkill">Skill Category</label>
+              <input type="text" class="form-control form-control-sm" id="adminCourseSkill" placeholder="e.g. Java Fundamentals" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold" for="adminCourseDifficulty">Difficulty</label>
+              <select class="form-select form-select-sm" id="adminCourseDifficulty">
+                <option value="BEGINNER">Beginner</option>
+                <option value="INTERMEDIATE">Intermediate</option>
+                <option value="ADVANCED">Advanced</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold" for="adminCourseDuration">Duration</label>
+              <input type="text" class="form-control form-control-sm" id="adminCourseDuration" value="3 hours">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold" for="adminCourseIcon">Bootstrap Icon Class</label>
+              <input type="text" class="form-control form-control-sm" id="adminCourseIcon" value="bi-journal-code">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Course</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer text-center py-4 text-secondary small">
+  <div class="container">
+    <p class="mb-1 fw-medium">SkillBridge AI • AI-Powered Adaptive Learning & Skill Gap Analysis</p>
+    <p class="mb-0 text-muted">Hackathon MVP • Java 17 • Spring Boot 3 • Spring Security + JWT • MySQL 8</p>
+  </div>
+</footer>
+
+<!-- Application Scripts -->
+<script src="/auth.js"></script>
+<script src="/app.js"></script>
+<script src="/career-assessment.js"></script>
+<script src="/insights.js"></script>
+<script src="/course-lms.js"></script>
+</body>
+</html>

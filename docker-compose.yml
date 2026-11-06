@@ -1,0 +1,41 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: skillbridge-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-skillbridge}
+      MYSQL_USER: ${DB_USER:-skillbridge_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-local_change_me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_change_me}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: skillbridge-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_NAME:-skillbridge}?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-skillbridge_user}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-local_change_me}
+      JWT_SECRET: ${JWT_SECRET:-local_only_change_this_secret_before_deployment}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+    ports:
+      - "8084:8080"
+
+volumes:
+  mysql_data:
